@@ -71,4 +71,8 @@ public class ArticleHeader {
     public String getDate() {
         return date;
     }
+
+    public String getLink() {
+        return link;
+    }
 }

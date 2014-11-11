@@ -18,6 +18,7 @@ import com.diolan.lsovet.network.GetHeadersListRequest;
 import org.json.JSONException;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.List;
 import com.diolan.lsovet.R;
 
@@ -68,33 +69,48 @@ public class ListFragment extends Fragment {
     }
 
     private void refreshList(){
-        new AsyncTask<Void,Void, List<ArticleHeader>>(){
+        new RefreshList(this).execute();
+    }
 
-            @Override
-            protected List<ArticleHeader> doInBackground(Void... params) {
-                try {
-                    return new GetHeadersListRequest().execute();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                return null;
+    public void setList(List<ArticleHeader> list) {
+        mAdapter.setList(list);
+    }
+
+    public void setRefreshing(boolean refreshing) {
+        mSwipeRefresh.setRefreshing(refreshing);
+    }
+
+    private static class RefreshList extends AsyncTask<Void,Void, List<ArticleHeader>>{
+
+       final WeakReference<ListFragment> fragmentReference;
+
+        private RefreshList(ListFragment fragment) {
+            this.fragmentReference = new WeakReference<ListFragment>(fragment);
+        }
+
+        @Override
+        protected List<ArticleHeader> doInBackground(Void... params) {
+            try {
+                return new GetHeadersListRequest().execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
+            return null;
+        }
 
-            @Override
-            protected void onPostExecute(List<ArticleHeader> articleHeaders) {
-                if(articleHeaders != null) {
-                    if(isAdded()) {
-                        mAdapter.setList(articleHeaders);
-                    }
+        @Override
+        protected void onPostExecute(List<ArticleHeader> articleHeaders) {
+            ListFragment fragment = fragmentReference.get();
+            if(fragment != null && fragment.isAdded()) {
+                if (articleHeaders != null) {
+                    fragment.setList(articleHeaders);
                 } else {
-                    if(isAdded()) {
-                        Toast.makeText(getActivity(),getString(R.string.error),Toast.LENGTH_SHORT);
-                    }
+                   Toast.makeText(fragment.getActivity(), fragment.getString(R.string.error), Toast.LENGTH_SHORT);
                 }
-                mSwipeRefresh.setRefreshing(false);
+                fragment.setRefreshing(false);
             }
-        }.execute();
+        }
     }
 }
